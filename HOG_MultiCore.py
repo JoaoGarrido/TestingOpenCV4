@@ -5,6 +5,7 @@ import argparse
 import datetime
 
 # Needed
+from multiprocessing import Process
 from imutils.object_detection import non_max_suppression
 from imutils.video import VideoStream
 from collections import deque
@@ -56,68 +57,42 @@ args = vars(ap.parse_args())
 winStride = eval(args["win_stride"])
 padding = eval(args["padding"])
 
-while True:
-
-	# load the image and resize it to (1) reduce detection time
-	# and (2) improve detection accuracy
-	BIG_JSON = ''
-	frame = vs.read()
-	Frame_number = Frame_number+1 
-	frame = imutils.resize(frame, width=min(400, frame.shape[1]))
-	
-	# DEBUG: Checking camera crash	
-	if frame is None and DEBUG:
-		print("Missed frame")
-	if W is None or H is None:
-		(H, W) = frame.shape[:2]
-	# detect people in the image
-	if DEBUG_FPS is True:
-		start = datetime.datetime.now()
+def DetectionAndSend(frame, Frame_number):
 	(rects, weights) = hog.detectMultiScale(
 		frame,
 		winStride=winStride,		# OLD (4,4)
 		padding=padding,	#OLD (8,8)
 		scale=args["scale"]  	#	OLD 1.05	# Needs to be tuned to find best performance
 	)
-	if DEBUG_FPS is True:
-		print("[INFO] detection took: {}s".format(
-			(datetime.datetime.now() - start).total_seconds()))
-
 	# apply non-maxima suppression to the bounding boxes using a
 	# fairly large overlap threshold to try to maintain overlapping
 	# boxes that are still people
-	if NON_MAX_SUPRESSION is True:
-		rects = np.array([[x, y, x + w, y + h] for (x, y, w, h) in rects])
-		pick = non_max_suppression(rects, probs=None, overlapThresh=args["overlap"])
-		for (xA, yA, xB, yB) in pick:
-			# .item converts numpy int64 dtype to python int type
-			packet = {
-				"Pi_ID": Pi_ID,
-				"Frame_number": Frame_number,
-				#"Timestamp": datetime.datetime.now().item(),
-				"X": xA.item(),
-				"Y": yA.item(),
-				"W": (xB-xA).item(),
-				"H": (yB-yA).item(),
-			}
-			JSON_PACKET = json.dumps(packet)
-			encoded = base64.b64encode(JSON_PACKET.encode('utf-8'))
-			subprocess.Popen(["bash", "process.sh", encoded])
-			cv2.rectangle(frame, (xA, yA), (xB, yB), (0, 255, 0), 2)
-	else:
-		for (x, y, w, h) in rects:
-			cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
-	if OPT_JSON_WAY is False:
-		with open('packet.json', 'w') as outfile:
-			outfile.write("{ %s }" % BIG_JSON)
-	# DEBUG - show()
-	if DEBUG_show is True:
-		cv2.imshow("Frame", frame)
-	print(frame.size)
-	# Close sript
-	key = cv2.waitKey(1) & 0xFF
-	if key == ord("q"):
-		break
+	rects = np.array([[x, y, x + w, y + h] for (x, y, w, h) in rects])
+	pick = non_max_suppression(rects, probs=None, overlapThresh=args["overlap"])
+	for (xA, yA, xB, yB) in pick:
+		# .item converts numpy int64 dtype to python int type
+		packet = {
+			"Pi_ID": Pi_ID,
+			"Frame_number": Frame_number,
+			#"Timestamp": datetime.datetime.now().item(),
+			"X": xA.item(),
+			"Y": yA.item(),
+			"W": (xB-xA).item(),
+			"H": (yB-yA).item(),
+		}
+		JSON_PACKET = json.dumps(packet)
+		encoded = base64.b64encode(JSON_PACKET.encode('utf-8'))
+		subprocess.Popen(["bash", "process.sh", encoded])
+		cv2.rectangle(frame, (xA, yA), (xB, yB), (0, 255, 0), 2)
+
+if __name__ == '__main__':
+	for x in [0, 1, 2, 3]:
+		frame = vs.read()
+		Frame_number = Frame_number+1 
+		frame = imutils.resize(frame, width=min(400, frame.shape[1]))
+		p = Process(target=DetectionAndSend, args=(frame, Frame_number))
+		p.start()
+	p.join()
 
 vs.stop()
 cv2.destroyAllWindows()    
