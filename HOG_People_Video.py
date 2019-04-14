@@ -63,7 +63,8 @@ while True:
 		scale=1.05  # Needs to be tuned to find best performance
 	)
 	if DEBUG_FPS is True:
-		print("[INFO] detection took: {}s".format((datetime.datetime.now() - start).total_seconds()))
+		print("[INFO] detection took: {}s".format(
+			(datetime.datetime.now() - start).total_seconds()))
 
 	# apply non-maxima suppression to the bounding boxes using a
 	# fairly large overlap threshold to try to maintain overlapping
