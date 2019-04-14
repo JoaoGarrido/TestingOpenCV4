@@ -2,6 +2,7 @@
 from __future__ import print_function
 from imutils import paths
 import argparse
+import datetime
 
 # Needed
 from imutils.object_detection import non_max_suppression
@@ -12,8 +13,8 @@ import imutils
 import cv2
 import time
 import json
-import datetime
-
+import subprocess
+import base64
 
 # TEST VARS
 DEBUG = False
@@ -32,7 +33,7 @@ Frame_number = 0
 (W, H) = (None, None)
 
 # Video capture
-vs = VideoStream(src=4).start()
+vs = VideoStream(src=2).start()
 # Warm up camera
 time.sleep(2.0)
 
@@ -40,7 +41,23 @@ time.sleep(2.0)
 hog = cv2.HOGDescriptor()
 hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
+#TEST PARAM:
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-w", "--win-stride", type=str, default="(8, 8)",
+	help="window stride")
+ap.add_argument("-p", "--padding", type=str, default="(16, 16)",
+	help="object padding")
+ap.add_argument("-s", "--scale", type=float, default=1.05,
+	help="image pyramid scale")
+ap.add_argument("-o", "--overlap", type=float, default=0.55,
+	help="overlap threshold")
+args = vars(ap.parse_args())
+winStride = eval(args["win_stride"])
+padding = eval(args["padding"])
+
 while True:
+
 	# load the image and resize it to (1) reduce detection time
 	# and (2) improve detection accuracy
 	BIG_JSON = ''
@@ -58,9 +75,9 @@ while True:
 		start = datetime.datetime.now()
 	(rects, weights) = hog.detectMultiScale(
 		frame,
-		winStride=(4, 4),
-		padding=(8, 8),
-		scale=1.05  # Needs to be tuned to find best performance
+		winStride=winStride,		# OLD (4,4)
+		padding=padding,	#OLD (8,8)
+		scale=args["scale"]  	#	OLD 1.05	# Needs to be tuned to find best performance
 	)
 	if DEBUG_FPS is True:
 		print("[INFO] detection took: {}s".format(
@@ -71,28 +88,21 @@ while True:
 	# boxes that are still people
 	if NON_MAX_SUPRESSION is True:
 		rects = np.array([[x, y, x + w, y + h] for (x, y, w, h) in rects])
-		pick = non_max_suppression(rects, probs=None, overlapThresh=0.65)
+		pick = non_max_suppression(rects, probs=None, overlapThresh=args["overlap"])
 		for (xA, yA, xB, yB) in pick:
 			# .item converts numpy int64 dtype to python int type
 			packet = {
 				"Pi_ID": Pi_ID,
 				"Frame_number": Frame_number,
+				#"Timestamp": datetime.datetime.now().item(),
 				"X": xA.item(),
 				"Y": yA.item(),
 				"W": (xB-xA).item(),
 				"H": (yB-yA).item(),
 			}
-			if DEBUG is False:
-				if OPT_JSON_WAY is True:
-					with open('packet.json', 'w') as outfile:
-						json.dump(packet, outfile)
-				else:
-					JSON_FILE = json.dumps(packet)
-					BIG_JSON = BIG_JSON + ',' + JSON_FILE
-			# DEBUG 
-			else:
-				JSON_FILE = json.dumps(packet)
-				print(JSON_FILE)
+			JSON_PACKET = json.dumps(packet)
+			encoded = base64.b64encode(JSON_PACKET.encode('utf-8'))
+			subprocess.Popen(["bash", "process.sh", encoded])
 			cv2.rectangle(frame, (xA, yA), (xB, yB), (0, 255, 0), 2)
 	else:
 		for (x, y, w, h) in rects:
