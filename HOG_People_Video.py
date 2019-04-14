@@ -18,11 +18,11 @@ import argparse
 DEBUG = False
 DEBUG_FPS = True
 OPT_JSON_WAY = False
-	#0->Single Object detected JSON File
-	#1->Single Frame JSON File
+# True->Single Object detected JSON File
+# False ->Single Frame JSON File
 NON_MAX_SUPRESSION = True
 
-#Packet INFO
+# Packet INFO
 Pi_ID = 0
 Frame_number = 0
 
@@ -58,7 +58,7 @@ while True:
 		frame,
 		winStride=(4, 4),
 		padding=(8, 8),
-		scale=1.05 #Needs to be tuned to find best performance
+		scale=1.05  # Needs to be tuned to find best performance
 	)
 	if DEBUG_FPS is True:
 		print("[INFO] detection took: {}s".format((datetime.datetime.now() - start).total_seconds()))
@@ -72,14 +72,13 @@ while True:
 		for (xA, yA, xB, yB) in pick:
 			# .item converts numpy int64 dtype to python int type
 			packet = {
-				"Pi_ID" : Pi_ID,
-				"Frame_number" : Frame_number,
-				"X" : xA.item(),
-				"Y" : yA.item(),
-				"W" : (xB-xA).item(),
-				"H" : (yB-yA).item(),
+				"Pi_ID": Pi_ID,
+				"Frame_number": Frame_number,
+				"X": xA.item(),
+				"Y": yA.item(),
+				"W": (xB-xA).item(),
+				"H": (yB-yA).item(),
 			}
-			#with open('data.json', 'w') as outfile:
 			if DEBUG is False:
 				if OPT_JSON_WAY is True:
 					with open('packet.json', 'w') as outfile:
@@ -87,7 +86,7 @@ while True:
 				else:
 					JSON_FILE = json.dumps(packet)
 					BIG_JSON = BIG_JSON + ',' + JSON_FILE
-			#DEBUG 
+			# DEBUG 
 			else:
 				JSON_FILE = json.dumps(packet)
 				print(JSON_FILE)
