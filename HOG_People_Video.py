@@ -1,12 +1,5 @@
-# USAGE
-# python detect.py --images images
-
-# import the necessary packages
-from __future__ import print_function
+# Needed
 from imutils.object_detection import non_max_suppression
-from imutils import paths
-import argparse
-
 from imutils.video import VideoStream
 from collections import deque
 import numpy as np
@@ -15,6 +8,11 @@ import cv2
 import time
 import json
 import datetime
+
+# Maybe needed
+from __future__ import print_function
+from imutils import paths
+import argparse
 
 # TEST VARS
 DEBUG = False
