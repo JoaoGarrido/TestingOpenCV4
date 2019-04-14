@@ -1,3 +1,8 @@
+# Maybe needed
+from __future__ import print_function
+from imutils import paths
+import argparse
+
 # Needed
 from imutils.object_detection import non_max_suppression
 from imutils.video import VideoStream
@@ -9,13 +14,10 @@ import time
 import json
 import datetime
 
-# Maybe needed
-from __future__ import print_function
-from imutils import paths
-import argparse
 
 # TEST VARS
 DEBUG = False
+DEBUG_show = True
 DEBUG_FPS = True
 OPT_JSON_WAY = False
 # True->Single Object detected JSON File
@@ -98,7 +100,7 @@ while True:
 		with open('packet.json', 'w') as outfile:
 			outfile.write("{ %s }" % BIG_JSON)
 	# DEBUG - show()
-	if DEBUG is True:
+	if DEBUG_show is True:
 		cv2.imshow("Frame", frame)
 	
 	# Close sript
