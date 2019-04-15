@@ -57,6 +57,7 @@ args = vars(ap.parse_args())
 winStride = eval(args["win_stride"])
 padding = eval(args["padding"])
 
+
 def DetectionAndSend(frame, Frame_number):
 	(rects, weights) = hog.detectMultiScale(
 		frame,
